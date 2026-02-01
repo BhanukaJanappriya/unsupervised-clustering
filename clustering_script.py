@@ -5,12 +5,11 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import confusion_matrix
 import numpy as np
 
-def load_data(file_path='iris.txt', sep=','):
+def load_data(file_path='iris.txt'):
     # Load all 5 columns: 4 features + 1 species label
     columns = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'species']
     try:
-        # Assuming comma-separated. If space-separated, use sep='\s+'
-        df = pd.read_csv(file_path, header=None, names=columns, sep=sep)
+        df = pd.read_csv(file_path, header=None, names=columns, sep=',')
         return df
     except FileNotFoundError:
         print("Error: File not found.")
@@ -33,32 +32,24 @@ def run_analysis():
     df = load_data()
     if df is None: return
 
-    # Features only
     X = df.iloc[:, 0:4]
 
-    # Setup for plotting intermediate results
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    iterations = [1, 2, 3]  # We will capture these specific iterations
+    iterations = [1, 2, 3]
 
-    # We use a fixed random state for initialization to track the SAME process
-    # init='random' is used to show the convergence clearly (k-means++ is too fast)
     common_seed = 42
 
     print("--- Running K-Means Step-by-Step ---")
 
     for idx, i in enumerate(iterations):
-        # Run K-Means stopped at iteration 'i'
         kmeans = KMeans(n_clusters=3, init='random', n_init=1, max_iter=i, random_state=common_seed)
         kmeans.fit(X)
 
-        # Store temporary labels for visualization
         df['cluster'] = kmeans.labels_
         centroids = kmeans.cluster_centers_
 
-        # Plot
         plot_step(df, centroids, i, axes[idx])
 
-        # Check if converged
         if i == 3: # Assuming convergence happens quickly for Iris
             axes[idx].set_title(f'Iteration {i} (Likely Converged)')
 
@@ -66,15 +57,12 @@ def run_analysis():
     plt.show()
 
     # --- Q1: Comparison to Ground Truth ---
-    # Run a final robust K-means
     final_km = KMeans(n_clusters=3, random_state=42, n_init=10)
     df['cluster_label'] = final_km.fit_predict(X)
 
     print("\n--- Centroids (Final) ---")
     print(final_km.cluster_centers_)
 
-    # Create a contingency table (Confusion Matrix)
-    # This shows which Species fell into which Cluster
     ct = pd.crosstab(df['species'], df['cluster_label'])
     print("\n--- Confusion Matrix (Species vs Cluster) ---")
     print(ct)
